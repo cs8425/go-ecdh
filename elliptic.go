@@ -2,6 +2,7 @@ package ecdh
 
 import (
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"io"
 	"math/big"
@@ -10,15 +11,6 @@ import (
 type ellipticECDH struct {
 	ECDH
 	curve elliptic.Curve
-}
-
-type ellipticPublicKey struct {
-	elliptic.Curve
-	X, Y *big.Int
-}
-
-type ellipticPrivateKey struct {
-	D []byte
 }
 
 // NewEllipticECDH creates a new instance of ECDH with the given elliptic.Curve curve
@@ -30,43 +22,33 @@ func NewEllipticECDH(curve elliptic.Curve) ECDH {
 }
 
 func (e *ellipticECDH) GenerateKey(rand io.Reader) (crypto.PrivateKey, crypto.PublicKey, error) {
-	var d []byte
-	var x, y *big.Int
-	var priv *ellipticPrivateKey
-	var pub *ellipticPublicKey
+	var priv *ecdsa.PrivateKey
+	var pub ecdsa.PublicKey
 	var err error
 
-	d, x, y, err = elliptic.GenerateKey(e.curve, rand)
+	priv, err = ecdsa.GenerateKey(e.curve, rand)
 	if err != nil {
 		return nil, nil, err
 	}
+	pub = priv.PublicKey
 
-	priv = &ellipticPrivateKey{
-		D: d,
-	}
-	pub = &ellipticPublicKey{
-		Curve: e.curve,
-		X: x,
-		Y: y,
-	}
-	
 	return priv, pub, nil
 }
 
 func (e *ellipticECDH) Marshal(p crypto.PublicKey) []byte {
-	pub := p.(*ellipticPublicKey)
+	pub := p.(*ecdsa.PublicKey)
 	return elliptic.Marshal(e.curve, pub.X, pub.Y)
 }
 
 func (e *ellipticECDH) Unmarshal(data []byte) (crypto.PublicKey, bool) {
-	var key *ellipticPublicKey
+	var key ecdsa.PublicKey
 	var x, y *big.Int
 
 	x, y = elliptic.Unmarshal(e.curve, data)
 	if x == nil || y == nil {
 		return key, false
 	}
-	key = &ellipticPublicKey{
+	key = ecdsa.PublicKey{
 		Curve: e.curve,
 		X:     x,
 		Y:     y,
@@ -79,9 +61,9 @@ func (e *ellipticECDH) Unmarshal(data []byte) (crypto.PublicKey, bool) {
 //
 // RFC5903 Section 9 states we should only return x.
 func (e *ellipticECDH) GenerateSharedSecret(privKey crypto.PrivateKey, pubKey crypto.PublicKey) ([]byte, error) {
-	priv := privKey.(*ellipticPrivateKey)
-	pub := pubKey.(*ellipticPublicKey)
+	priv := privKey.(*ecdsa.PrivateKey)
+	pub := pubKey.(*ecdsa.PublicKey)
 
-	x, _ := e.curve.ScalarMult(pub.X, pub.Y, priv.D)
+	x, _ := e.curve.ScalarMult(pub.X, pub.Y, priv.D.Bytes())
 	return x.Bytes(), nil
 }

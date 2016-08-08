@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-// The main interface for ECDH key exchange.
+// ECDH is the main interface for ECDH key exchange.
 type ECDH interface {
 	GenerateKey(io.Reader) (crypto.PrivateKey, crypto.PublicKey, error)
 	Marshal(crypto.PublicKey) []byte
