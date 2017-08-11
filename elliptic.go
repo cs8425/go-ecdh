@@ -23,14 +23,14 @@ func NewEllipticECDH(curve elliptic.Curve) ECDH {
 
 func (e *ellipticECDH) GenerateKey(rand io.Reader) (crypto.PrivateKey, crypto.PublicKey, error) {
 	var priv *ecdsa.PrivateKey
-	var pub ecdsa.PublicKey
+	var pub *ecdsa.PublicKey
 	var err error
 
 	priv, err = ecdsa.GenerateKey(e.curve, rand)
 	if err != nil {
 		return nil, nil, err
 	}
-	pub = priv.PublicKey
+	pub = &priv.PublicKey
 
 	return priv, pub, nil
 }
@@ -41,14 +41,14 @@ func (e *ellipticECDH) Marshal(p crypto.PublicKey) []byte {
 }
 
 func (e *ellipticECDH) Unmarshal(data []byte) (crypto.PublicKey, bool) {
-	var key ecdsa.PublicKey
+	var key *ecdsa.PublicKey
 	var x, y *big.Int
 
 	x, y = elliptic.Unmarshal(e.curve, data)
 	if x == nil || y == nil {
 		return key, false
 	}
-	key = ecdsa.PublicKey{
+	key = &ecdsa.PublicKey{
 		Curve: e.curve,
 		X:     x,
 		Y:     y,

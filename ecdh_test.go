@@ -24,10 +24,6 @@ func TestNIST521(t *testing.T) {
 	testECDH(NewEllipticECDH(elliptic.P521()), t)
 }
 
-func TestCurve25519(t *testing.T) {
-	testECDH(NewCurve25519ECDH(), t)
-}
-
 func BenchmarkNIST224(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		testECDH(NewEllipticECDH(elliptic.P224()), b)
@@ -52,13 +48,6 @@ func BenchmarkNIST521(b *testing.B) {
 	}
 }
 
-func BenchmarkCurve25519(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		testECDH(NewCurve25519ECDH(), b)
-	}
-}
-
-
 func testECDH(e ECDH, t testing.TB) {
 	var privKey1, privKey2 crypto.PrivateKey
 	var pubKey1, pubKey2 crypto.PublicKey
@@ -79,21 +68,32 @@ func testECDH(e ECDH, t testing.TB) {
 	pubKey1Buf = e.Marshal(pubKey1)
 	pubKey2Buf = e.Marshal(pubKey2)
 
-	pubKey1, ok = e.Unmarshal(pubKey1Buf)
+	UpubKey1, ok := e.Unmarshal(pubKey1Buf)
 	if !ok {
 		t.Fatalf("Unmarshal does not work")
 	}
 
-	pubKey2, ok = e.Unmarshal(pubKey2Buf)
+	pubKey1Buf2 := e.Marshal(UpubKey1)
+	if !bytes.Equal(pubKey1Buf, pubKey1Buf2) {
+		t.Fatalf("Marshal, Unmarshal: %d, %d do not match", pubKey1Buf, pubKey1Buf2)
+	}
+
+	UpubKey2, ok := e.Unmarshal(pubKey2Buf)
 	if !ok {
 		t.Fatalf("Unmarshal does not work")
 	}
 
-	secret1, err = e.GenerateSharedSecret(privKey1, pubKey2)
+	pubKey2Buf2 := e.Marshal(UpubKey2)
+	if !bytes.Equal(pubKey2Buf, pubKey2Buf2) {
+		t.Fatalf("Marshal, Unmarshal: %d, %d do not match", pubKey2Buf, pubKey2Buf2)
+	}
+
+
+	secret1, err = e.GenerateSharedSecret(privKey1, UpubKey2)
 	if err != nil {
 		t.Error(err)
 	}
-	secret2, err = e.GenerateSharedSecret(privKey2, pubKey1)
+	secret2, err = e.GenerateSharedSecret(privKey2, UpubKey1)
 	if err != nil {
 		t.Error(err)
 	}
